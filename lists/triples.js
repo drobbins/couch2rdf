@@ -13,13 +13,13 @@ function(head, req) {
    * @return [subject, predicate, object_type, object]
    */
   var extractTriple = function(row, req) {
-    //if (req.path[5] === 'spo') {
+    if (req.path[5] === 'spo') {
       return [row.key[0], row.key[1], row.key[2]];
-    //} else if (req.path[5] === 'pos') {
-    //  return [row.key[2], row.key[0], row.key[1]];
-    //} else if (req.path[5] === 'osp') {
-    //  return [row.key[1], row.key[2], row.key[0]];
-    //}
+    } else if (req.path[5] === 'pos') {
+      return [row.key[2], row.key[0], row.key[1]];
+    } else if (req.path[5] === 'osp') {
+      return [row.key[1], row.key[2], row.key[0]];
+    }
   };
 
   /**
@@ -41,7 +41,6 @@ function(head, req) {
   // HTML output
   provides('html', function() {
     var row;
-    send(req.dir);
     while (row = getRow()) {
       if (permissionFilter(row, req)) {
         var triple = extractTriple(row, req);
@@ -51,11 +50,6 @@ function(head, req) {
         description += '&lt;' + triple[1] + '&gt;';
         description += ' ';
         description += '&lt;' + triple[2] + '&gt;';
-        //if (triple[2] === 'URI') {
-        //  description += '&lt;' + triple[3] + '&gt;';
-        //} else if (triple[2] === 'Literal') {
-        //  description += '"' + triple[3] + '"';
-        //}
         description += ' .<br />'
         send(description);
       }
