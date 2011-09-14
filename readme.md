@@ -7,6 +7,8 @@ Export CouchDB documents as triples, using the following conventions:
 * Object = ``doc.attribute``
 * Default namespace = ``database name``
 
+Now this readme is better!
+
 ## Installation
 
 Requires [CouchDB](http://couchdb.apache.org/) and your data.
