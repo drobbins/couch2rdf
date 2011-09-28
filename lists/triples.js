@@ -37,66 +37,103 @@ function(head, req) {
       return true;
   };
 
-  // HTML output
-  provides('html', function() {
+  var send_triple_as = {
+    n3 : function(triple){
+      var description = '';
+      description += '<' + nsa + ':' + triple[0] + '>';
+      description += ' ';
+      description += '<' + nsa + ':' + triple[1] + '>';
+      description += ' ';
+      description += '"' + triple[2] + '"';
+      description += ' .\n';
+      send(description);
+    },
+    rdf : function(triple){
+      var description = '';
+      description += '<rdf:Description rdf:about="' + triple[0] + '">';
+      description += '<'+nsa+':'+triple[1]+'>'+escape(triple[2])+'</'+nsa+':'+triple[1]+'>';
+      description += '</rdf:Description>';
+      send(description);
+    },
+    html : function(triple){
+      var description = '';
+      description += '&lt;' + triple[0] + '&gt;';
+      description += ' ';
+      description += '&lt;' + triple[1] + '&gt;';
+      description += ' ';
+      description += '"' + triple[2] + '"';
+      description += ' .<br />'
+      send(description);
+    }
+  }
+
+  var send_triples_as = function(format){
+    if (typeof send_triple_as[format] != 'function'){
+      return false;
+    }
     var row;
-    while (row = getRow()) {
+    while (row = getRow()){
       if (permissionFilter(row, req)) {
         var triple = extractTriple(row, req);
-        var description = '';
-        description += '&lt;' + triple[0] + '&gt;';
-        description += ' ';
-        description += '&lt;' + triple[1] + '&gt;';
-        description += ' ';
-        description += '"' + triple[2] + '"';
-        description += ' .<br />'
-        send(description);
+        send_triple_as[format](triple);
       }
+    }
+  }
+
+  var send_n3 = function(){
+    start({
+      "headers" : {
+        "Content-Disposition" : "attachment; filename=Couch2RDF.n3"
+      }
+    });
+    //setup the prefix
+    send('@prefix ' + nsa + ': <' + ns + '>\n');
+    send_triples_as('n3');
+  }
+
+  var send_rdf = function(){
+    start({
+      "headers" : {
+        "Content-Disposition" : "attachment; filename=Couch2RDF.rdf"
+      }
+    });
+    var namespaceRegex = /^(.*[/#])(.*)$/;
+    var namespaceLookup = [];
+    send('<?xml version="1.0" encoding="UTF-8"?>\n');
+    send('<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">');
+    send('<rdf:RDF xmlns:' + nsa + '="' + ns + '">');
+    send_triples_as('rdf');
+    send('</rdf:RDF>');
+  }
+
+  // HTML output
+  provides('html', function() {
+    if(req.query.format === '"n3"'){
+      send_n3();
+    }
+    else if (req.query.format === '"rdf"'){
+      send_rdf();
+    }
+    else{
+      send('<ul>');
+      for(i in this){
+        send('<li>'+i+'</li>');
+      }
+      send('</ul>');
+      //send_triples_as('html');
     }
   });
 
   // N3 output
   registerType('n3', 'text/n3');
   provides('n3', function() {
-    //setup the prefix
-    send('@prefix ' + nsa + ': <' + ns + '>\n');
-    var row;
-    while (row = getRow()) {
-      if (permissionFilter(row, req)) {
-        var triple = extractTriple(row, req);
-        var description = '';
-        description += '<' + nsa + ':' + triple[0] + '>';
-        description += ' ';
-        description += '<' + nsa + ':' + triple[1] + '>';
-        description += ' ';
-        description += '"' + triple[2] + '"';
-        description += ' .\n';
-        send(description);
-      }
-    }
+    send_n3();
   });
 
   // RDF output
   registerType('rdf', 'application/rdf+xml');
   provides('rdf', function() {
-    var namespaceRegex = /^(.*[/#])(.*)$/;
-    var namespaceLookup = [];
-    send('<?xml version="1.0" encoding="UTF-8"?>\n');
-    send('<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">');
-    send('<rdf:RDF xmlns:' + nsa + '="' + ns + '">');
-    var row;
-    while (row = getRow()) {
-      if (permissionFilter(row, req)) {
-        var triple = extractTriple(row, req);
-        // Generate description
-        var description = '';
-        description += '<rdf:Description rdf:about="' + triple[0] + '">';
-        description += '<'+nsa+':'+triple[1]+'>'+escape(triple[2])+'</'+nsa+':'+triple[1]+'>';
-        description += '</rdf:Description>';
-        send(description);
-      }
-    }
-    send('</rdf:RDF>');
+    send_rdf();
   });
 
 
