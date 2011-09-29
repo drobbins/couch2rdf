@@ -3,18 +3,31 @@
   <head>
     <title>Couchd2RDF</title>
     <link rel="stylesheet" href="style.css" type="text/css">
+    <script src="/_utils/script/jquery.js"></script>
+    <script src="/_utils/script/jquery.couch.js"></script>
   </head>
   <body>
     <h1>Couch2RDF</h1>
     <p>Export your CouchDB as RDF.</p>
     <form>
-      <label>Default Namespace: <input type="text" id="namespace" name="namespace" /></label>
+      <label>Default Namespace: <input type="text" id="namespace" name="namespace" /></label><br />
+      <label>Default Abbreviation: <input type="text" id="namespace_abbreviation" name="abbreviation" /></label><br />
       <select id="format">
         <option value="n3" selected="true">n3</option>
-        <option value="xml">rdf xml</option>
+        <option value="rdf">rdf xml</option>
         <option value="html">html</option>
       </select>
-      <input type="button" value="go" />
+      <input type="button" value="go" id="get_rdf" />
     </form>
+    <script type="text/javascript">
+      $("#get_rdf").click(function(){
+        var format = $("#format").val(),
+            namespace = $("#namespace").val(),
+            abbr = $("#namespace_abbreviation").val(),
+            ddoc_href = window.location.href.slice(0, window.location.href.lastIndexOf("/"));
+        query_string = "?" + ((format && "format="+format+"&") || "") + ((namespace && "default_namespace="+namespace+"&") || "") + ((abbr && "default_namespace_abbreviation="+abbr+"&") || "");
+        window.location.href = ddoc_href+"/_list/triples/spo/?format="+(format||'html')+"&default_namespace="+(namespace||'');
+      });
+    </script>
   </body>
 </html>

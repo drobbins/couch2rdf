@@ -6,7 +6,7 @@ function(head, req) {
    */
 
   //Setup the namespace
-  var default_namespace = req.query.default_namespace || "http://db/"+req.path[0]+"#",
+  var default_namespace = req.query.namespace || "http://db/"+req.path[0]+"#",
       ns = default_namespace,
       default_namespace_abbreviation = req.query.default_namespace_abbreviation || req.path[0],
       nsa = default_namespace_abbreviation;
@@ -69,7 +69,7 @@ function(head, req) {
 
   var send_triples_as = function(format){
     if (typeof send_triple_as[format] != 'function'){
-      return false;
+      throw(["error", "triple format unknown", "No triple formatting function for "+format+". You can add one as send_triple_as["+format+"]"]);
     }
     var row;
     while (row = getRow()){
@@ -80,7 +80,9 @@ function(head, req) {
     }
   }
 
-  var send_n3 = function(){
+  // N3 output
+  registerType('n3', 'text/n3');
+  provides('n3', function() {
     start({
       "headers" : {
         "Content-Disposition" : "attachment; filename=Couch2RDF.n3"
@@ -89,9 +91,11 @@ function(head, req) {
     //setup the prefix
     send('@prefix ' + nsa + ': <' + ns + '>\n');
     send_triples_as('n3');
-  }
+  });
 
-  var send_rdf = function(){
+  // RDF output
+  registerType('rdf', 'application/rdf+xml');
+  provides('rdf', function() {
     start({
       "headers" : {
         "Content-Disposition" : "attachment; filename=Couch2RDF.rdf"
@@ -104,36 +108,11 @@ function(head, req) {
     send('<rdf:RDF xmlns:' + nsa + '="' + ns + '">');
     send_triples_as('rdf');
     send('</rdf:RDF>');
-  }
+  });
 
-  // HTML output
+  // HTML output, default.
   provides('html', function() {
-    if(req.query.format === '"n3"'){
-      send_n3();
-    }
-    else if (req.query.format === '"rdf"'){
-      send_rdf();
-    }
-    else{
-      send('<ul>');
-      for(i in this){
-        send('<li>'+i+'</li>');
-      }
-      send('</ul>');
-      //send_triples_as('html');
-    }
-  });
-
-  // N3 output
-  registerType('n3', 'text/n3');
-  provides('n3', function() {
-    send_n3();
-  });
-
-  // RDF output
-  registerType('rdf', 'application/rdf+xml');
-  provides('rdf', function() {
-    send_rdf();
+    send_triples_as('html');
   });
 
 
