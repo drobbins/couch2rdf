@@ -6,7 +6,7 @@ function(head, req) {
    */
 
   //Setup the namespace
-  var default_namespace = req.query.namespace || "http://db/"+req.path[0]+"#",
+  var default_namespace = req.query.default_namespace.replace(/'/g,'') || "http://db/"+req.path[0]+"#",
       ns = default_namespace,
       default_namespace_abbreviation = req.query.default_namespace_abbreviation || req.path[0],
       nsa = default_namespace_abbreviation;
