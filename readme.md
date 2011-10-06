@@ -22,6 +22,10 @@ Needless to say, this option requires [CouchApp](http://couchapp.org/page/index)
 
 ## Usage
 
+Use the nice HTML export interface at ``http://localhost:5984/somedb/_design/couch2rdf/index.html``
+
+OR do things the manual way:
+
 1. Visit ``http://localhost:5984/somedb/_design/couch2rdf/_list/triples/spo``
 2. OR for N3: ``curl -H "Accept: text/n3" http://localhost:5984/somedb/_design/couch2rdf/_list/triples/spo``
 3. OR for RDF: ``curl -H "Accept: application/rdf+xml" http://localhost:5984/somedb/_design/couch2rdf/_list/triples/spo``
