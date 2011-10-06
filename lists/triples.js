@@ -6,7 +6,7 @@ function(head, req) {
    */
 
   //Setup the namespace
-  var default_namespace = req.query.default_namespace || "http://db/"+req.path[0]+"#",
+  var default_namespace = req.query.default_namespace.replace(/'/g,'') || "http://db/"+req.path[0]+"#",
       ns = default_namespace,
       default_namespace_abbreviation = req.query.default_namespace_abbreviation || req.path[0],
       nsa = default_namespace_abbreviation;
@@ -37,66 +37,82 @@ function(head, req) {
       return true;
   };
 
-  // HTML output
-  provides('html', function() {
+  var send_triple_as = {
+    n3 : function(triple){
+      var description = '';
+      description += '<' + nsa + ':' + triple[0] + '>';
+      description += ' ';
+      description += '<' + nsa + ':' + triple[1] + '>';
+      description += ' ';
+      description += '"' + triple[2] + '"';
+      description += ' .\n';
+      send(description);
+    },
+    rdf : function(triple){
+      var description = '';
+      description += '<rdf:Description rdf:about="' + triple[0] + '">';
+      description += '<'+nsa+':'+triple[1]+'>'+escape(triple[2])+'</'+nsa+':'+triple[1]+'>';
+      description += '</rdf:Description>';
+      send(description);
+    },
+    html : function(triple){
+      var description = '';
+      description += '&lt;' + triple[0] + '&gt;';
+      description += ' ';
+      description += '&lt;' + triple[1] + '&gt;';
+      description += ' ';
+      description += '"' + triple[2] + '"';
+      description += ' .<br />'
+      send(description);
+    }
+  }
+
+  var send_triples_as = function(format){
+    if (typeof send_triple_as[format] != 'function'){
+      throw(["error", "triple format unknown", "No triple formatting function for "+format+". You can add one as send_triple_as["+format+"]"]);
+    }
     var row;
-    while (row = getRow()) {
+    while (row = getRow()){
       if (permissionFilter(row, req)) {
         var triple = extractTriple(row, req);
-        var description = '';
-        description += '&lt;' + triple[0] + '&gt;';
-        description += ' ';
-        description += '&lt;' + triple[1] + '&gt;';
-        description += ' ';
-        description += '"' + triple[2] + '"';
-        description += ' .<br />'
-        send(description);
+        send_triple_as[format](triple);
       }
     }
-  });
+  }
 
   // N3 output
   registerType('n3', 'text/n3');
   provides('n3', function() {
+    start({
+      "headers" : {
+        "Content-Disposition" : "attachment; filename=Couch2RDF.n3"
+      }
+    });
     //setup the prefix
     send('@prefix ' + nsa + ': <' + ns + '>\n');
-    var row;
-    while (row = getRow()) {
-      if (permissionFilter(row, req)) {
-        var triple = extractTriple(row, req);
-        var description = '';
-        description += '<' + nsa + ':' + triple[0] + '>';
-        description += ' ';
-        description += '<' + nsa + ':' + triple[1] + '>';
-        description += ' ';
-        description += '"' + triple[2] + '"';
-        description += ' .\n';
-        send(description);
-      }
-    }
+    send_triples_as('n3');
   });
 
   // RDF output
   registerType('rdf', 'application/rdf+xml');
   provides('rdf', function() {
+    start({
+      "headers" : {
+        "Content-Disposition" : "attachment; filename=Couch2RDF.rdf"
+      }
+    });
     var namespaceRegex = /^(.*[/#])(.*)$/;
     var namespaceLookup = [];
     send('<?xml version="1.0" encoding="UTF-8"?>\n');
     send('<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">');
     send('<rdf:RDF xmlns:' + nsa + '="' + ns + '">');
-    var row;
-    while (row = getRow()) {
-      if (permissionFilter(row, req)) {
-        var triple = extractTriple(row, req);
-        // Generate description
-        var description = '';
-        description += '<rdf:Description rdf:about="' + triple[0] + '">';
-        description += '<'+nsa+':'+triple[1]+'>'+escape(triple[2])+'</'+nsa+':'+triple[1]+'>';
-        description += '</rdf:Description>';
-        send(description);
-      }
-    }
+    send_triples_as('rdf');
     send('</rdf:RDF>');
+  });
+
+  // HTML output, default.
+  provides('html', function() {
+    send_triples_as('html');
   });
 
 
